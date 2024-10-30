@@ -8,51 +8,114 @@ class POST extends StatefulWidget {
   State<POST> createState() => _POSTState();
 }
 
-TextEditingController name = TextEditingController();
-TextEditingController price = TextEditingController();
-TextEditingController desc = TextEditingController();
+// Contrôleurs pour chaque champ de saisie
+TextEditingController prospectNameController = TextEditingController();
+TextEditingController dateController = TextEditingController();
+TextEditingController degreeController = TextEditingController();
+TextEditingController rdvObjectController = TextEditingController();
+TextEditingController nextRdvController = TextEditingController();
+TextEditingController timeController = TextEditingController();
+TextEditingController contactController = TextEditingController();
+TextEditingController pharmacoVigilanceController = TextEditingController();
 
 class _POSTState extends State<POST> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
+      appBar: AppBar(title: const Text("Ajout de Prospect")),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(10),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Nom du prospect
             TextField(
-              controller: name,
-              decoration: const InputDecoration(label: Text("Product-name")),
+              controller: prospectNameController,
+              decoration: const InputDecoration(labelText: "Nom du prospect"),
             ),
-            const SizedBox(
-              height: 50,
-            ),
-            TextField(
-              controller: price,
-              decoration: const InputDecoration(label: Text("Product-price")),
-            ),
-            const SizedBox(
-              height: 50,
-            ),
-            TextField(
-              controller: desc,
-              decoration: const InputDecoration(label: Text("Product-desc")),
-            ),
-            const SizedBox(
-              height: 50,
-            ),
-            ElevatedButton(
-                onPressed: () {
-                  var data = {
-                    "name": name.text,
-                    "price": price.text,
-                    "desc": desc.text
-                  };
+            const SizedBox(height: 20),
 
-                  Http.postProduct(data);
-                },
-                child: const Text("POST"))
+            // Date
+            TextField(
+              controller: dateController,
+              decoration: const InputDecoration(labelText: "Date"),
+              keyboardType: TextInputType.datetime,
+            ),
+            const SizedBox(height: 20),
+
+            // Degré
+            TextField(
+              controller: degreeController,
+              decoration: const InputDecoration(labelText: "Degré"),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 20),
+
+            // Objet du rendez-vous
+            TextField(
+              controller: rdvObjectController,
+              decoration: const InputDecoration(labelText: "Objet du rdv"),
+            ),
+            const SizedBox(height: 20),
+
+            // Prochain rendez-vous
+            TextField(
+              controller: nextRdvController,
+              decoration: const InputDecoration(labelText: "Prochain rdv"),
+              keyboardType: TextInputType.datetime,
+            ),
+            const SizedBox(height: 20),
+
+            // Heure
+            TextField(
+              controller: timeController,
+              decoration: const InputDecoration(labelText: "Heure"),
+              keyboardType: TextInputType.datetime,
+            ),
+            const SizedBox(height: 20),
+
+            // Contact
+            TextField(
+              controller: contactController,
+              decoration: const InputDecoration(labelText: "Contact"),
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 20),
+
+            // Ajout de fichier complémentaire
+            ElevatedButton(
+              onPressed: () {
+                // Fonctionnalité pour ajouter un fichier
+              },
+              child: const Text("Ajouter un fichier complémentaire"),
+            ),
+            const SizedBox(height: 20),
+
+            // Pharmaco-vigilance
+            TextField(
+              controller: pharmacoVigilanceController,
+              decoration: const InputDecoration(labelText: "Pharmaco-vigilance"),
+            ),
+            const SizedBox(height: 30),
+
+            // Bouton POST
+            ElevatedButton(
+              onPressed: () {
+                var data = {
+                  "prospectName": prospectNameController.text,
+                  "date": dateController.text,
+                  "degree": degreeController.text,
+                  "rdvObject": rdvObjectController.text,
+                  "nextRdv": nextRdvController.text,
+                  "time": timeController.text,
+                  "contact": contactController.text,
+                  "pharmacoVigilance": pharmacoVigilanceController.text,
+                };
+
+                Http.postReporting(data);
+              },
+              child: const Text("POST"),
+            ),
           ],
         ),
       ),

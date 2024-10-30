@@ -1,11 +1,13 @@
-import 'package:asermpharma/src/app.dart';
-import 'package:asermpharma/src/settings/settings_controller.dart';
-import 'package:asermpharma/src/settings/settings_service.dart';
-import 'package:asermpharma/src/start/signup_page.dart';
+import 'package:asermpharma/src/service/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
+
+  // Contrôleurs pour les champs de texte
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +43,7 @@ class LoginPage extends StatelessWidget {
               color: Color(0xFF01172D)),
         ),
         Text(
-          "Enter your credential to login",
+          "Enter your credentials to login",
           style: TextStyle(color: Colors.grey[700]),
         ),
       ],
@@ -53,44 +55,60 @@ class LoginPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TextField(
+          controller: usernameController,
           decoration: InputDecoration(
-              hintText: "Username",
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide.none),
-              fillColor: const Color(0xFFED700B).withOpacity(0.1),
-              filled: true,
-              prefixIcon: const Icon(Icons.person, color: Color(0xFF01172D))),
+            hintText: "Username",
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide.none,
+            ),
+            fillColor: const Color(0xFFED700B).withOpacity(0.1),
+            filled: true,
+            prefixIcon: const Icon(Icons.person, color: Color(0xFF01172D)),
+          ),
         ),
         const SizedBox(height: 15),
         TextField(
+          controller: passwordController,
           decoration: InputDecoration(
             hintText: "Password",
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide: BorderSide.none),
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide.none,
+            ),
             fillColor: const Color(0xFFED700B).withOpacity(0.1),
             filled: true,
-            prefixIcon: const Icon(
-              Icons.password,
-              color: Color(0xFF01172D),
-            ),
+            prefixIcon: const Icon(Icons.password, color: Color(0xFF01172D)),
           ),
           obscureText: true,
         ),
         const SizedBox(height: 20),
         ElevatedButton(
           onPressed: () async {
-            final settingsController = SettingsController(SettingsService());
-            await settingsController.loadSettings();
+            bool isLoggedIn = await AuthService.login({
+              "username": usernameController.text,
+              "password": passwordController.text,
+            });
 
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    MyApp(settingsController: settingsController),
-              ),
-            );
+            if (isLoggedIn) {
+              final prefs = await SharedPreferences.getInstance();
+              String? token = prefs.getString("authToken");
+
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MyApp(
+                    settingsController: SettingsController(SettingsService()),
+                  ),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Connexion échouée. Vérifiez vos informations."),
+                ),
+              );
+            }
           },
           style: ElevatedButton.styleFrom(
             shape: const StadiumBorder(),
@@ -125,19 +143,21 @@ class LoginPage extends StatelessWidget {
           style: TextStyle(color: Color(0xFF01172D)),
         ),
         TextButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SignupPage(),
-                ),
-              );
-            },
-            child: const Text(
-              "Sign Up",
-              style: TextStyle(color: Color(0xFFED700B)),
-            ))
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SignupPage(),
+              ),
+            );
+          },
+          child: const Text(
+            "Sign Up",
+            style: TextStyle(color: Color(0xFFED700B)),
+          ),
+        ),
       ],
     );
   }
 }
+

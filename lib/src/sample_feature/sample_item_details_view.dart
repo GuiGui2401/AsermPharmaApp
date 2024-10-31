@@ -9,24 +9,6 @@ class SampleItemDetailsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Item Details'),
-      ),
-      body: Center(
-        child: ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (BuildContext context) {
-                    return const POST();
-                  },
-                ),
-              );
-            },
-            child: const Text("POST")),
-      ),
-    );
+    return const Scaffold(body: POST());
   }
 }

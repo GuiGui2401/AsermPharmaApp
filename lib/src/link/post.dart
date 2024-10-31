@@ -1,5 +1,8 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:asermpharma/src/service/http.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 class POST extends StatefulWidget {
   const POST({super.key});
@@ -19,6 +22,100 @@ TextEditingController contactController = TextEditingController();
 TextEditingController pharmacoVigilanceController = TextEditingController();
 
 class _POSTState extends State<POST> {
+  bool _isLoading = false;
+  Position? _currentPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    _requestCurrentPosition();
+  }
+
+  Future<void> _requestCurrentPosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("Veuillez activer les services de localisation")),
+      );
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("La permission de localisation est refusée")),
+        );
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                "Les permissions de localisation sont définitivement refusées")),
+      );
+      return;
+    }
+
+    _currentPosition = await Geolocator.getCurrentPosition();
+  }
+
+  void _submitData() async {
+    if (_currentPosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Position non récupérée")),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    var data = {
+      "prospectName": prospectNameController.text,
+      "date": dateController.text,
+      "degree": degreeController.text,
+      "rdvObject": rdvObjectController.text,
+      "nextRdv": nextRdvController.text,
+      "time": timeController.text,
+      "contact": contactController.text,
+      "pharmacoVigilance": pharmacoVigilanceController.text,
+      "latitude": _currentPosition!.latitude,
+      "longitude": _currentPosition!.longitude,
+    };
+
+    try {
+      final response = await Http.postReporting(data);
+
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Rapport soumis avec succès !")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Échec de la soumission du rapport.")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur : ${e.toString()}")),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,93 +125,82 @@ class _POSTState extends State<POST> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Nom du prospect
             TextField(
               controller: prospectNameController,
               decoration: const InputDecoration(labelText: "Nom du prospect"),
             ),
             const SizedBox(height: 20),
-
-            // Date
             TextField(
               controller: dateController,
               decoration: const InputDecoration(labelText: "Date"),
               keyboardType: TextInputType.datetime,
             ),
             const SizedBox(height: 20),
-
-            // Degré
             TextField(
               controller: degreeController,
               decoration: const InputDecoration(labelText: "Degré"),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 20),
-
-            // Objet du rendez-vous
             TextField(
               controller: rdvObjectController,
               decoration: const InputDecoration(labelText: "Objet du rdv"),
             ),
             const SizedBox(height: 20),
-
-            // Prochain rendez-vous
             TextField(
               controller: nextRdvController,
               decoration: const InputDecoration(labelText: "Prochain rdv"),
               keyboardType: TextInputType.datetime,
             ),
             const SizedBox(height: 20),
-
-            // Heure
             TextField(
               controller: timeController,
               decoration: const InputDecoration(labelText: "Heure"),
               keyboardType: TextInputType.datetime,
             ),
             const SizedBox(height: 20),
-
-            // Contact
             TextField(
               controller: contactController,
               decoration: const InputDecoration(labelText: "Contact"),
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 20),
-
-            // Ajout de fichier complémentaire
             ElevatedButton(
               onPressed: () {
                 // Fonctionnalité pour ajouter un fichier
               },
-              child: const Text("Ajouter un fichier complémentaire"),
+              style: ElevatedButton.styleFrom(
+                shape: const StadiumBorder(),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                backgroundColor: const Color(0xFFED700B),
+              ),
+              child: const Text(
+                "Ajouter un fichier complémentaire",
+                style: TextStyle(fontSize: 20, color: Color(0xFF01172D)),
+              ),
             ),
             const SizedBox(height: 20),
-
-            // Pharmaco-vigilance
             TextField(
               controller: pharmacoVigilanceController,
-              decoration: const InputDecoration(labelText: "Pharmaco-vigilance"),
+              decoration:
+                  const InputDecoration(labelText: "Pharmaco-vigilance"),
             ),
             const SizedBox(height: 30),
-
-            // Bouton POST
             ElevatedButton(
-              onPressed: () {
-                var data = {
-                  "prospectName": prospectNameController.text,
-                  "date": dateController.text,
-                  "degree": degreeController.text,
-                  "rdvObject": rdvObjectController.text,
-                  "nextRdv": nextRdvController.text,
-                  "time": timeController.text,
-                  "contact": contactController.text,
-                  "pharmacoVigilance": pharmacoVigilanceController.text,
-                };
-
-                Http.postReporting(data);
-              },
-              child: const Text("POST"),
+              onPressed: _isLoading ? null : _submitData,
+              style: ElevatedButton.styleFrom(
+                shape: const StadiumBorder(),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                backgroundColor: const Color(0xFFED700B),
+              ),
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : const Text(
+                      "Ajouter le Rapport",
+                      style: TextStyle(fontSize: 20, color: Color(0xFF01172D)),
+                    ),
             ),
           ],
         ),

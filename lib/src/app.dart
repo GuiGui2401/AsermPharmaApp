@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'sample_feature/sample_item_details_view.dart';
+import 'sample_feature/sample_item_details_view_2.dart';
 import 'sample_feature/sample_item_list_view.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
@@ -17,6 +19,7 @@ class MyApp extends StatefulWidget {
   final SettingsController settingsController;
 
   @override
+  // ignore: library_private_types_in_public_api
   _MyAppState createState() => _MyAppState();
 }
 
@@ -55,7 +58,9 @@ class _MyAppState extends State<MyApp> {
 
     // Si tout est en règle, vous pouvez récupérer la position.
     Position position = await Geolocator.getCurrentPosition();
-    print("Position: ${position.latitude}, ${position.longitude}");
+    if (kDebugMode) {
+      print("Position: ${position.latitude}, ${position.longitude}");
+    }
   }
 
   @override
@@ -89,6 +94,8 @@ class _MyAppState extends State<MyApp> {
                     return SettingsView(controller: widget.settingsController);
                   case SampleItemDetailsView.routeName:
                     return const SampleItemDetailsView();
+                  case SampleItemDetailsView2.routeName:
+                    return const SampleItemDetailsView2();
                   case SampleItemListView.routeName:
                   default:
                     return const SampleItemListView();

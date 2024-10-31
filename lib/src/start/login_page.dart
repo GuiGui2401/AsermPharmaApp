@@ -1,9 +1,13 @@
-import 'package:asermpharma/src/service/auth_service.dart';
+import 'package:asermpharma/src/app.dart';
+import 'package:asermpharma/src/service/http.dart';
+import 'package:asermpharma/src/settings/settings_controller.dart';
+import 'package:asermpharma/src/settings/settings_service.dart';
+import 'package:asermpharma/src/start/signup_page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+  LoginPage({super.key});
 
   // Contrôleurs pour les champs de texte
   final TextEditingController usernameController = TextEditingController();
@@ -13,16 +17,16 @@ class LoginPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        margin: const EdgeInsets.all(24),
+        margin: const EdgeInsets.all(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _header(context),
-            const SizedBox(height: 15.0),
+            const SizedBox(height: 3.0),
             _inputField(context),
-            const SizedBox(height: 5.0),
+            const SizedBox(height: 1.0),
             _forgotPassword(context),
-            const SizedBox(height: 5.0),
+            const SizedBox(height: 1.0),
             _signup(context),
           ],
         ),
@@ -85,7 +89,7 @@ class LoginPage extends StatelessWidget {
         const SizedBox(height: 20),
         ElevatedButton(
           onPressed: () async {
-            bool isLoggedIn = await AuthService.login({
+            bool isLoggedIn = await Http.login({
               "username": usernameController.text,
               "password": passwordController.text,
             });
@@ -105,7 +109,8 @@ class LoginPage extends StatelessWidget {
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text("Connexion échouée. Vérifiez vos informations."),
+                  content:
+                      Text("Connexion échouée. Vérifiez vos informations."),
                 ),
               );
             }
@@ -160,4 +165,3 @@ class LoginPage extends StatelessWidget {
     );
   }
 }
-

@@ -6,9 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class Http {
   static String url = "http://192.168.1.108:5002/v1/";
 
-  static Future postReporting(Map pdata) async {
+  static postReporting(Map pdata) async {
     try {
-      // Récupération du token
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString("authToken");
 
@@ -21,26 +20,28 @@ class Http {
         body: jsonEncode(pdata),
       );
 
-      if (res.statusCode == 200) {
+      if (res != null && res.statusCode == 200) {
         var data = jsonDecode(res.body.toString());
         if (kDebugMode) {
           print(data);
         }
+        return data;
       } else {
         if (kDebugMode) {
-          print("Échec de l'ajout de reporting : ${res.statusCode}");
+          print("Échec de l'ajout de reporting : ${res?.statusCode}");
         }
+        return null;
       }
     } catch (e) {
       if (kDebugMode) {
         print("Erreur : ${e.toString()}");
       }
+      return null;
     }
   }
 
-  static Future postPharmacy(Map pdata) async {
+  static postPharmacy(Map pdata) async {
     try {
-      // Récupération du token
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString("authToken");
 
@@ -53,20 +54,23 @@ class Http {
         body: jsonEncode(pdata),
       );
 
-      if (res.statusCode == 200) {
+      if (res != null && res.statusCode == 200) {
         var data = jsonDecode(res.body.toString());
         if (kDebugMode) {
           print(data);
         }
+        return data;
       } else {
         if (kDebugMode) {
-          print("Échec de l'ajout de la pharmacie : ${res.statusCode}");
+          print("Échec de l'ajout de la pharmacie : ${res?.statusCode}");
         }
+        return null;
       }
     } catch (e) {
       if (kDebugMode) {
         print("Erreur : ${e.toString()}");
       }
+      return null;
     }
   }
 
@@ -84,13 +88,12 @@ class Http {
         body: jsonEncode(pdata),
       );
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         var data = jsonDecode(response.body);
 
         if (data.containsKey("token")) {
           String token = data["token"];
 
-          // Stockage du token avec SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString("authToken", token);
 
@@ -106,7 +109,7 @@ class Http {
         }
       } else {
         if (kDebugMode) {
-          print("Échec de connexion : ${response.statusCode}");
+          print("Échec de connexion : ${response?.statusCode}");
         }
         return false;
       }

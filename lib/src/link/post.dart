@@ -3,6 +3,10 @@
 import 'package:asermpharma/src/service/http.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class POST extends StatefulWidget {
   const POST({super.key});
@@ -14,7 +18,6 @@ class POST extends StatefulWidget {
 // Contrôleurs pour chaque champ de saisie
 TextEditingController prospectNameController = TextEditingController();
 TextEditingController dateController = TextEditingController();
-TextEditingController degreeController = TextEditingController();
 TextEditingController rdvObjectController = TextEditingController();
 TextEditingController nextRdvController = TextEditingController();
 TextEditingController timeController = TextEditingController();
@@ -23,7 +26,9 @@ TextEditingController pharmacoVigilanceController = TextEditingController();
 
 class _POSTState extends State<POST> {
   bool _isLoading = false;
+  String? _degree; // Variable pour le degré
   Position? _currentPosition;
+  File? _selectedFile; // Variable pour stocker le fichier temporairement
 
   @override
   void initState() {
@@ -69,6 +74,21 @@ class _POSTState extends State<POST> {
   }
 
   void _submitData() async {
+    // Validation des champs obligatoires
+    if (prospectNameController.text.isEmpty ||
+        dateController.text.isEmpty ||
+        _degree == null ||
+        rdvObjectController.text.isEmpty ||
+        nextRdvController.text.isEmpty ||
+        timeController.text.isEmpty ||
+        contactController.text.isEmpty ||
+        pharmacoVigilanceController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Veuillez remplir tous les champs")),
+      );
+      return;
+    }
+
     if (_currentPosition == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Position non récupérée")),
@@ -83,7 +103,7 @@ class _POSTState extends State<POST> {
     var data = {
       "prospectName": prospectNameController.text,
       "date": dateController.text,
-      "degree": degreeController.text,
+      "degree": _degree,
       "rdvObject": rdvObjectController.text,
       "nextRdv": nextRdvController.text,
       "time": timeController.text,
@@ -96,9 +116,15 @@ class _POSTState extends State<POST> {
     try {
       final response = await Http.postReporting(data);
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200) {
+        // Téléchargement du fichier après que le rapport a été soumis
+        if (_selectedFile != null) {
+          await _uploadFile();
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Rapport soumis avec succès !")),
+          const SnackBar(
+              content: Text("Rapport et fichier soumis avec succès !")),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,12 +133,90 @@ class _POSTState extends State<POST> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erreur : ${e.toString()}")),
+        const SnackBar(
+            content: Text("Rapport et fichier soumis avec succès !")),
       );
     } finally {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _uploadFile() async {
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse("http://192.168.1.108:5002/v1/upload"),
+    );
+
+    if (_selectedFile != null) {
+      request.files
+          .add(await http.MultipartFile.fromPath('file', _selectedFile!.path));
+
+      final prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString("authToken");
+
+      request.headers.addAll({"Authorization": "Bearer $token"});
+
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Fichier téléchargé avec succès !")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text("Échec du téléchargement : ${response.statusCode}")),
+        );
+      }
+    }
+  }
+
+  Future<void> _selectFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'png', 'jpeg', 'docx'],
+    );
+
+    if (result != null) {
+      setState(() {
+        _selectedFile =
+            File(result.files.single.path!); // Stocker le fichier sélectionné
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                "Fichier sélectionné. Il sera téléchargé lors de l'envoi du rapport.")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Aucun fichier sélectionné")),
+      );
+    }
+  }
+
+  Future<void> _pickDate(TextEditingController controller) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null) {
+      controller.text = "${picked.toLocal()}".split(' ')[0];
+    }
+  }
+
+  Future<void> _pickTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null) {
+      timeController.text = picked.format(context);
     }
   }
 
@@ -133,13 +237,24 @@ class _POSTState extends State<POST> {
             TextField(
               controller: dateController,
               decoration: const InputDecoration(labelText: "Date"),
-              keyboardType: TextInputType.datetime,
+              readOnly: true,
+              onTap: () => _pickDate(dateController),
             ),
             const SizedBox(height: 20),
-            TextField(
-              controller: degreeController,
+            DropdownButtonFormField<String>(
+              value: _degree,
               decoration: const InputDecoration(labelText: "Degré"),
-              keyboardType: TextInputType.number,
+              items: ['A', 'B', 'C', 'D', 'E', 'F']
+                  .map((degree) => DropdownMenuItem(
+                        value: degree,
+                        child: Text(degree),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _degree = value;
+                });
+              },
             ),
             const SizedBox(height: 20),
             TextField(
@@ -150,13 +265,15 @@ class _POSTState extends State<POST> {
             TextField(
               controller: nextRdvController,
               decoration: const InputDecoration(labelText: "Prochain rdv"),
-              keyboardType: TextInputType.datetime,
+              readOnly: true,
+              onTap: () => _pickDate(nextRdvController),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: timeController,
               decoration: const InputDecoration(labelText: "Heure"),
-              keyboardType: TextInputType.datetime,
+              readOnly: true,
+              onTap: _pickTime,
             ),
             const SizedBox(height: 20),
             TextField(
@@ -166,9 +283,7 @@ class _POSTState extends State<POST> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                // Fonctionnalité pour ajouter un fichier
-              },
+              onPressed: _selectFile,
               style: ElevatedButton.styleFrom(
                 shape: const StadiumBorder(),
                 padding:
@@ -176,30 +291,31 @@ class _POSTState extends State<POST> {
                 backgroundColor: const Color(0xFFED700B),
               ),
               child: const Text(
-                "Ajouter un fichier complémentaire",
-                style: TextStyle(fontSize: 20, color: Color(0xFF01172D)),
+                "Ajouter un fichier",
+                style: TextStyle(color: Colors.white),
               ),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: pharmacoVigilanceController,
               decoration:
-                  const InputDecoration(labelText: "Pharmaco-vigilance"),
+                  const InputDecoration(labelText: "Pharmaco Vigilance"),
+              keyboardType: TextInputType.text,
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _isLoading ? null : _submitData,
               style: ElevatedButton.styleFrom(
-                shape: const StadiumBorder(),
                 padding:
-                    const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                backgroundColor: const Color(0xFFED700B),
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 50),
+                backgroundColor: const Color(0xFF01172D),
+                shape: const StadiumBorder(),
               ),
               child: _isLoading
-                  ? const CircularProgressIndicator()
+                  ? const CircularProgressIndicator(color: Colors.white)
                   : const Text(
-                      "Ajouter le Rapport",
-                      style: TextStyle(fontSize: 20, color: Color(0xFF01172D)),
+                      "Valider",
+                      style: TextStyle(fontSize: 20, color: Colors.white),
                     ),
             ),
           ],

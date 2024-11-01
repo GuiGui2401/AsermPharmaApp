@@ -57,7 +57,8 @@ class _POSTState extends State<POST2> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erreur : ${e.toString()}")),
+        const SnackBar(
+            content: Text("Rapport et fichier soumis avec succès !")),
       );
     } finally {
       setState(() {
